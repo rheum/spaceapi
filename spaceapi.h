@@ -6,3 +6,8 @@
 #include "green.h"
 #include "yellow.h"
 #include "red.h"
+
+struct hacker_space {
+    char* name;
+    char* url;
+};

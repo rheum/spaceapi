@@ -7,6 +7,9 @@ GdkPixbuf *red_icon;
 CURL *curl;
 CURLcode res;
 
+struct hacker_space *directory = NULL;
+int space_count = 0;
+
 void init_icons(){
     GdkPixbufLoader *loader;
 
@@ -53,7 +56,7 @@ size_t allocate_buffer(void *ptr, size_t size, size_t nmemb, void *data){
     if (*buf == NULL){
         *buf = strndup(ptr, count); 
     }else {
-        *buf = realloc(*buf, (size_t) (strlen(*buf) + count));
+        *buf = realloc(*buf, (size_t) (strlen(*buf) + count + 1));
         strncat(*buf, ptr, count);
     }
     return count;
@@ -68,17 +71,52 @@ char* perform_http_get(const char* url){
     res = curl_easy_perform(curl);
     if(res != CURLE_OK){
         fputs("curl failed", stderr);
+        buf = NULL;
     }
     curl_easy_cleanup(curl);
     return buf;
 }
 
+void free_directory(){
+    for (int i = 0; i < space_count; i++){
+        free(directory[i].name);
+        free(directory[i].url);
+    }
+    free(directory);
+    directory = NULL;
+    space_count = 0;
+}
+
 gboolean fetch_directory(gpointer data){
+    if (directory != NULL){
+        free_directory();
+    }
+
     char *buf = NULL;
     buf = perform_http_get("http://spaceapi.net/directory.json");
-    puts(buf);
+
+    if (buf == NULL)
+        return TRUE;
+
+    char *ptr = strtok(buf, "{}\t\n");
+    char *ptr2 = NULL;
+    char *ptr3 = NULL;
+    for (; ptr != NULL; ptr = strtok(NULL, "{}\t\n")){
+        ptr = strchr(ptr, '"');
+        ptr2 = strchr(ptr, ':');
+        ptr3 = strchr(ptr2 + 2, '"');
+
+        struct hacker_space space;
+        space.name = strndup(ptr + 1, ptr2 - ptr - 2);
+        space.url = strndup(ptr2 + 2, ptr3 - ptr2 -2);
+
+        space_count++;
+        directory = realloc(directory, 
+                space_count * sizeof(struct hacker_space));
+        directory[space_count-1] = space;
+    }
     free(buf);
-    return FALSE;
+    return TRUE;
 }
 
 int main(int argc, char **argv){
