@@ -3,6 +3,7 @@
 GdkPixbuf *green_icon = NULL;
 GdkPixbuf *yellow_icon = NULL;
 GdkPixbuf *red_icon = NULL;
+guint anim_id = 0;
 
 GtkStatusIcon *status_icon = NULL;
 GtkMenu *menu = NULL;
@@ -11,7 +12,7 @@ GtkCheckMenuItem** space_items = NULL;
 
 struct hacker_space *directory = NULL;
 int space_count = 0;
-int selected_space = 0;
+int selected_space = -1;
 
 void read_config(){
 
@@ -62,16 +63,16 @@ void init_gui() {
     gtk_menu_shell_append((GtkMenuShell*) menu, (GtkWidget*) quit_menu_item);
 }
 
-gboolean do_something(gpointer data) {
+gboolean animate_startup(gpointer data) {
     static int i = 0;
     if (i == 0) {
-        gtk_status_icon_set_from_pixbuf(data, green_icon);
+        gtk_status_icon_set_from_pixbuf(status_icon, green_icon);
     }
     else if (i == 1) {
-        gtk_status_icon_set_from_pixbuf(data, yellow_icon);
+        gtk_status_icon_set_from_pixbuf(status_icon, yellow_icon);
     }
     else if (i == 2) {
-        gtk_status_icon_set_from_pixbuf(data, red_icon);
+        gtk_status_icon_set_from_pixbuf(status_icon, red_icon);
     }
     i++;
     i %= 3;
@@ -129,7 +130,7 @@ void free_directory() {
     space_count = 0;
 }
 
-static int compare_spaces(const void *p1, const void *p2) {
+int compare_spaces(const void *p1, const void *p2) {
     return strcmp(((struct hacker_space*) p1)->name, ((struct hacker_space*) p2)->name);
 }
 
@@ -145,7 +146,7 @@ void update_menu_items() {
 }
 
 
-static void popup_menu(GtkStatusIcon *status_icon, guint button,
+void popup_menu(GtkStatusIcon *status_icon, guint button,
                        guint activate_time, gpointer user_data) {
     gtk_widget_show((GtkWidget*) menu);
     gtk_widget_show_all((GtkWidget*) menu);
@@ -153,7 +154,7 @@ static void popup_menu(GtkStatusIcon *status_icon, guint button,
                    status_icon, button, activate_time);
 }
 
-static void select_space(GtkCheckMenuItem* menu_item, gpointer user_data){
+void select_space(GtkCheckMenuItem* menu_item, gpointer user_data){
     if(gtk_check_menu_item_get_active(menu_item)){
         printf("Activate: %s\n", directory[GPOINTER_TO_INT(user_data)].name);
         for (int i = 0; i < space_count; i++){
@@ -161,9 +162,18 @@ static void select_space(GtkCheckMenuItem* menu_item, gpointer user_data){
                 gtk_check_menu_item_set_active(space_items[i], FALSE);
             } else {
                 selected_space = i;
+                g_source_remove(anim_id);
             }
         }
     }
+    refresh_status(NULL);
+}
+
+gboolean refresh_status(gpointer data){
+    if (selected_space != -1){
+        gtk_status_icon_set_from_pixbuf(status_icon, yellow_icon);
+    }
+    return TRUE;
 }
 
 int main(int argc, char **argv) {
@@ -178,7 +188,8 @@ int main(int argc, char **argv) {
     g_signal_connect(G_OBJECT(status_icon), "popup-menu", G_CALLBACK(popup_menu), NULL);
 
     g_idle_add(update_directory, NULL);
-    g_timeout_add(500, do_something, status_icon);
+    anim_id = g_timeout_add(500, animate_startup, NULL);
+    g_timeout_add(5*60*1000, refresh_status, NULL);
 
     gtk_main();
 }

@@ -14,11 +14,13 @@ struct hacker_space {
     char* url;
 };
 
+gboolean animate_startup(gpointer data);
 gboolean fetch_directory();
+gboolean refresh_status(gpointer data);
 gboolean update_directory();
-static int compare_spaces(const void *p1, const void *p2);
-static void popup_menu(GtkStatusIcon *status_icon, guint button, guint activate_time, gpointer user_data);
-static void select_space(GtkCheckMenuItem* menu_item, gpointer data);
+int compare_spaces(const void *p1, const void *p2);
+void popup_menu(GtkStatusIcon *status_icon, guint button, guint activate_time, gpointer user_data);
+void select_space(GtkCheckMenuItem* menu_item, gpointer data);
 void free_directory();
 void init_gui();
 void init_icons();
