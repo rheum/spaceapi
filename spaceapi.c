@@ -11,6 +11,11 @@ GtkCheckMenuItem** space_items = NULL;
 
 struct hacker_space *directory = NULL;
 int space_count = 0;
+int selected_space = 0;
+
+void read_config(){
+
+}
 
 void init_icons() {
     GdkPixbufLoader *loader;
@@ -128,11 +133,13 @@ static int compare_spaces(const void *p1, const void *p2) {
     return strcmp(((struct hacker_space*) p1)->name, ((struct hacker_space*) p2)->name);
 }
 
+
 void update_menu_items() {
     space_items = realloc(space_items, space_count * sizeof(GtkCheckMenuItem));
     for (int i = 0; i < space_count; i++) {
         space_items[i] = (GtkCheckMenuItem*) gtk_check_menu_item_new_with_label(directory[i].name);
         gtk_menu_shell_append((GtkMenuShell*) sub_menu, (GtkWidget*) space_items[i]);
+        g_signal_connect(G_OBJECT(space_items[i]), "toggled", G_CALLBACK(select_space), GINT_TO_POINTER(i));
     }
     gtk_widget_set_sensitive((GtkWidget*) sub_menu, TRUE);
 }
@@ -146,11 +153,26 @@ static void popup_menu(GtkStatusIcon *status_icon, guint button,
                    status_icon, button, activate_time);
 }
 
+static void select_space(GtkCheckMenuItem* menu_item, gpointer user_data){
+    if(gtk_check_menu_item_get_active(menu_item)){
+        printf("Activate: %s\n", directory[GPOINTER_TO_INT(user_data)].name);
+        for (int i = 0; i < space_count; i++){
+            if ( menu_item != space_items[i] ){
+                gtk_check_menu_item_set_active(space_items[i], FALSE);
+            } else {
+                selected_space = i;
+            }
+        }
+    }
+}
 
 int main(int argc, char **argv) {
+    read_config();
+
     gtk_init(&argc, &argv);
     init_icons();
     init_gui();
+
 
     status_icon = gtk_status_icon_new_from_pixbuf(green_icon);
     g_signal_connect(G_OBJECT(status_icon), "popup-menu", G_CALLBACK(popup_menu), NULL);

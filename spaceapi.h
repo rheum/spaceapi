@@ -29,5 +29,9 @@ void free_directory();
 
 void update_menu_items();
 
+void read_config();
+
+static void select_space(GtkCheckMenuItem* menu_item, gpointer data);
+
 static void popup_menu(GtkStatusIcon *status_icon, guint button,
         guint activate_time, gpointer user_data);
